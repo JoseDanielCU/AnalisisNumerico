@@ -10,21 +10,27 @@ export interface Iteration {
 }
 
 export function fixedPointMethod(
+    gx: string,
     x0: number,
-    options: { tol: number; maxIter: number; fx: string }
+    options: { tol: number; maxIter: number; fx: string; A?: number; k?: number }
 ): Iteration[] {
     const results: Iteration[] = [];
-    const k = 0.1; // Fixed scaling factor for g(x) = x - k * f(x)
-    const A = 0; // Fixed A parameter
+    const A = options.A ?? 0;
+    const k = options.k ?? 0.1; // Default k for automatic g(x)
 
-    // Define g(x) = x - k * f(x)
-    const g = (x: number) => x - k * evaluate(options.fx, { x, A });
+    // Define g(x): use provided gx or derive g(x) = x - k * f(x)
+    const g = gx
+        ? (x: number) => evaluate(gx, { x, A })
+        : (x: number) => x - k * evaluate(options.fx, { x, A });
+
     // Define f(x)
     const f = (x: number) => evaluate(options.fx, { x, A });
 
     // Check convergence condition: |g'(x0)| < 1
     try {
-        const gPrime = `1 - ${k} * (${derivative(options.fx, "x").toString()})`;
+        const gPrime = gx
+            ? derivative(gx, "x").toString()
+            : `1 - ${k} * (${derivative(options.fx, "x").toString()})`;
         const gPrimeValue = evaluate(gPrime, { x: x0, A });
         if (Math.abs(gPrimeValue) >= 1) {
             results.push({
