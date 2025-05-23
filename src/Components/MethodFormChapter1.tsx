@@ -85,7 +85,7 @@ const MethodFormChapter1 = ({ method }: { method: string }) => {
             setErrorMessage("El número máximo de iteraciones debe ser mayor que 0.");
             return false;
         }
-        if (method === "fixedPoint" && useAutoGx && (isNaN(k) || k < 0)) {
+        if (method === "fixedPoint" && useAutoGx && (isNaN(k) || k <= 0)) {
             setErrorMessage("El factor k debe ser un número positivo para g(x) automática.");
             return false;
         }
