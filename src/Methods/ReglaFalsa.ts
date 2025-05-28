@@ -7,6 +7,8 @@ interface Iteration {
     x1: number;
     f_x1: number;
     error: number;
+    error_abs: number;
+    error_rel: number;
 }
 
 export function falseRuleMethod(
@@ -25,14 +27,16 @@ export function falseRuleMethod(
     let iter = 0;
     let x1 = a;
     let prev = a;
-    let error = Number.MAX_VALUE;
+    let error_abs = Number.MAX_VALUE;
+    let error_rel = Number.MAX_VALUE;
 
-    while (iter < options.maxIter && error > options.tol) {
+    while (iter < options.maxIter && error_abs > options.tol) {
         x1 = b - fb * (b - a) / (fb - fa);
         const fx1 = f(x1);
-        error = iter === 0 ? Math.abs(fx1) : Math.abs(x1 - prev);
+        error_abs = iter === 0 ? Math.abs(fx1) : Math.abs(x1 - prev);
+        error_rel = x1 !== 0 ? error_abs / Math.abs(x1) : Number.MAX_VALUE;
 
-        results.push({ iter: iter + 1, a, b, x1, f_x1: fx1, error });
+        results.push({ iter: iter + 1, a, b, x1, f_x1: fx1, error: error_abs, error_abs, error_rel });
 
         if (fa * fx1 < 0) {
             b = x1;

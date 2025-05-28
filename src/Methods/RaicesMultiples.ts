@@ -8,6 +8,8 @@ interface Iteration {
     df_x: number;
     d2f_x: number;
     error: number;
+    error_abs: number;
+    error_rel: number;
 }
 
 export function multipleRootsMethod(
@@ -40,7 +42,9 @@ export function multipleRootsMethod(
         if (denom === 0) throw new Error("Denominador nulo en método de raíces múltiples");
 
         const nextX = x - (fxVal * dfxVal) / denom;
-        error = Math.abs(nextX - x);
+        const error_abs = Math.abs(nextX - x);
+        const error_rel = nextX !== 0 ? error_abs / Math.abs(nextX) : Number.MAX_VALUE;
+        error = error_abs; // Usamos el error absoluto para la convergencia
 
         results.push({
             iter: iter + 1,
@@ -48,7 +52,9 @@ export function multipleRootsMethod(
             f_x: fxVal,
             df_x: dfxVal,
             d2f_x: d2fxVal,
-            error,
+            error,      // error absoluto para comparación
+            error_abs,
+            error_rel,
         });
 
         x = nextX;

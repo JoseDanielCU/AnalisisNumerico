@@ -26,6 +26,7 @@ const MethodFormChapter2 = ({ method }: { method: string }) => {
         { name: string; iterations: any[]; spectralRadius: number; converges: boolean }[]
     >([]);
     const [errorMessage, setErrorMessage] = useState("");
+    const [errorType, setErrorType] = useState<"abs" | "rel">("abs");
 
     const methodDescriptions: Record<string, string> = {
         jacobi: "El método de Jacobi resuelve sistemas lineales iterativamente actualizando cada variable usando los valores de la iteración anterior.",
@@ -93,9 +94,17 @@ const MethodFormChapter2 = ({ method }: { method: string }) => {
             switch (method) {
                 case "jacobi":
                     res = jacobiMethod(A, b, { tol, maxIter });
+                    res.iterations = res.iterations.map((iteration: any) => ({
+                ...iteration,
+                error: errorType === "abs" ? iteration.error_abs : iteration.error_rel,
+            }));
                     break;
                 case "gaussSeidel":
                     res = gaussSeidelMethod(A, b, { tol, maxIter });
+                    res.iterations = res.iterations.map((iteration: any) => ({
+                ...iteration,
+                error: errorType === "abs" ? iteration.error_abs : iteration.error_rel,
+            }));
                     break;
                 case "sor":
                     if (omega <= 0 || omega >= 2) {
@@ -103,6 +112,10 @@ const MethodFormChapter2 = ({ method }: { method: string }) => {
                         return;
                     }
                     res = sorMethod(A, b, options);
+                    res.iterations = res.iterations.map((iteration: any) => ({
+                ...iteration,
+                error: errorType === "abs" ? iteration.error_abs : iteration.error_rel,
+            }));
                     break;
             }
 
@@ -173,7 +186,7 @@ const MethodFormChapter2 = ({ method }: { method: string }) => {
                                     type="number"
                                     value={val}
                                     onChange={(e) => handleMatrixInput(e, i, j)}
-                                    className="border p-2 rounded text-center"
+                                    className="border p-0.5 rounded text-center w-12 h-11 text-s" // <-- Clases actualizadas
                                     placeholder={`a${i + 1}${j + 1}`}
                                 />
                             ))
@@ -196,6 +209,20 @@ const MethodFormChapter2 = ({ method }: { method: string }) => {
                         ))}
                     </div>
                 </div>
+
+            <div className="grid grid-cols-5 md:grid-cols-1 gap-4">
+                <div>
+                    <label className="block font-medium">Tipo de error:</label>
+                    <select
+                        value={errorType}
+                        onChange={(e) => setErrorType(e.target.value as "abs" | "rel")}
+                        className="w-full border p-2 rounded"
+                >
+                    <option value="abs">Error Absoluto</option>
+                    <option value="rel">Error Relativo</option>
+                    </select>
+                </div>
+            </div>
 
                 <div>
                     <label className="block font-medium">Tolerancia:</label>

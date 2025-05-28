@@ -3,7 +3,9 @@
 export interface IterationSOR {
     iter: number;
     x: number[];
-    error: number;
+    error: number;      // Error absoluto (usado para la comparación con tol)
+    error_abs: number;  // Error absoluto (igual que error)
+    error_rel: number;  // Error relativo
 }
 
 export function sorMethod(
@@ -55,9 +57,21 @@ export function sorMethod(
             x[i] = (1 - omega) * xOld[i] + omega * xNew;
         }
 
-        error = Math.max(...x.map((xi, i) => Math.abs(xi - xOld[i])));
-        iterations.push({ iter: iter + 1, x: [...x], error });
+        // Error absoluto: máxima diferencia entre las componentes de x y xOld
+        const error_abs = Math.max(...x.map((xi, i) => Math.abs(xi - xOld[i])));
+        // Error relativo: error_abs dividido por el máximo valor absoluto de x (siempre que no sea 0)
+        const maxVal = Math.max(...x.map((xi) => Math.abs(xi)));
+        const error_rel = maxVal !== 0 ? error_abs / maxVal : Number.MAX_VALUE;
+        // Usamos error_abs como criterio de convergencia
+        error = error_abs;
 
+        iterations.push({
+            iter: iter + 1,
+            x: [...x],
+            error: error_abs,
+            error_abs,
+            error_rel,
+        });
         iter++;
     }
 

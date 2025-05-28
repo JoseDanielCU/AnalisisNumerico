@@ -22,6 +22,7 @@ const MethodFormChapter3 = ({ method }: { method: string }) => {
         { name: string; polynomial: string; testValue: number; error?: string | number }[]
     >([]);
     const [errorMessage, setErrorMessage] = useState("");
+    const [errorType, setErrorType] = useState<"abs" | "rel">("abs");
 
     const methodDescriptions: Record<string, string> = {
         vandermonde: "El método de Vandermonde construye un polinomio interpolante resolviendo un sistema lineal basado en la matriz de Vandermonde.",
@@ -144,6 +145,9 @@ const MethodFormChapter3 = ({ method }: { method: string }) => {
                     break;
             }
 
+            (res as any).error = errorType === "abs" ? (res as any).error_abs : (res as any).error_rel;
+
+
             setResult(res);
 
             if (generateReport) {
@@ -155,22 +159,28 @@ const MethodFormChapter3 = ({ method }: { method: string }) => {
                     { name: "Spline Cúbico", fn: cubicSplineMethod },
                 ];
 
-                const report = methodsToRun.map(({ name, fn }) => {
-                    try {
-                        const result = fn(points);
-                        let testValue: number;
-                        if (name === "Lagrange") {
-                            testValue = evaluateLagrange(points, testPoint);
-                        } else if (name.includes("Spline")) {
-                            testValue = evaluateSpline((result as LinearSplineResult | CubicSplineResult).segments, testPoint);
-                        } else {
-                            testValue = evaluatePolynomial((result as VandermondeResult | NewtonResult).coefficients, testPoint, name === "Newton Interpolante" ? points.map(p => p[0]) : undefined);
-                        }
-                        return { name, polynomial: result.polynomial, testValue };
-                    } catch (err) {
-                        return { name, polynomial: "", testValue: 0, error: "Error al ejecutar" };
-                    }
-                });
+               const report = methodsToRun.map(({ name, fn }) => {
+    try {
+        const result = fn(points);
+        let testValue: number;
+        if (name === "Lagrange") {
+            testValue = evaluateLagrange(points, testPoint);
+        } else if (name.includes("Spline")) {
+            testValue = evaluateSpline((result as LinearSplineResult | CubicSplineResult).segments, testPoint);
+        } else {
+            testValue = evaluatePolynomial(
+                (result as VandermondeResult | NewtonResult).coefficients,
+                testPoint,
+                name === "Newton Interpolante" ? points.map(p => p[0]) : undefined
+            );
+        }
+        // Asigna el error según errorType:
+        const errorValue = errorType === "abs" ? (result as any).error_abs : (result as any).error_rel;
+        return { name, polynomial: result.polynomial, testValue, error: errorValue };
+    } catch (err) {
+        return { name, polynomial: "", testValue: 0, error: "Error al ejecutar" };
+    }
+});
 
                 setReportResults(report);
             } else {
@@ -259,6 +269,21 @@ const MethodFormChapter3 = ({ method }: { method: string }) => {
                     />
                 </div>
             </div>
+
+                                        <div className="grid grid-cols-5 md:grid-cols-2 gap-4">
+                <div>
+                    <label className="block font-medium">Tipo de error:</label>
+                    <select
+                        value={errorType}
+                        onChange={(e) => setErrorType(e.target.value as "abs" | "rel")}
+                        className="w-full border p-2 rounded"
+                >
+                    <option value="abs">Error Absoluto</option>
+                    <option value="rel">Error Relativo</option>
+                    </select>
+                </div>
+            </div>
+            
 
             <div className="flex items-center space-x-2 mt-2">
                 <input

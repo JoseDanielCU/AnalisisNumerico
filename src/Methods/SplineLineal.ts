@@ -1,6 +1,8 @@
 export interface LinearSplineResult {
     segments: { m: number; b: number; interval: [number, number] }[];
     polynomial: string;
+    error_abs: number;  // Error absoluto (en este caso, 0 ya que la interpolación pasa por los puntos)
+    error_rel: number;  // Error relativo (0)
 }
 
 export function linearSplineMethod(points: [number, number][]): LinearSplineResult {
@@ -27,5 +29,11 @@ export function linearSplineMethod(points: [number, number][]): LinearSplineResu
         })
         .join("\n");
 
-    return { segments, polynomial };
+    // Dado que la interpolación lineal pasa exactamente por los puntos de datos,
+    // el error en esos nodos es 0. Si se quisiera evaluar en puntos intermedios,
+    // se debería conocer la función original y evaluarla.
+    const error_abs = 0;
+    const error_rel = 0;
+
+    return { segments, polynomial, error_abs, error_rel };
 }

@@ -1,9 +1,10 @@
-// src/Methods/Vandermonde.ts
 import { gaussianElimination } from "../Utils/EliminacionGaussiana";
 
 export interface VandermondeResult {
     coefficients: number[];
     polynomial: string;
+    error_abs: number;  // Error absoluto (máxima diferencia entre y real y y calculado)
+    error_rel: number;  // Error relativo (error_absoluto / máximo valor absoluto de y)
 }
 
 export function vandermondeMethod(points: [number, number][]): VandermondeResult {
@@ -30,5 +31,18 @@ export function vandermondeMethod(points: [number, number][]): VandermondeResult
         .filter(term => term)
         .join(" ");
 
-    return { coefficients, polynomial };
+    // Evaluamos el polinomio en cada punto y calculamos el error
+    const predictedY = x.map(xVal => {
+        return coefficients.reduce((acc, coef, i) => {
+            const power = n - 1 - i;
+            return acc + coef * Math.pow(xVal, power);
+        }, 0);
+    });
+    
+    const residuals = y.map((yi, i) => Math.abs(yi - predictedY[i]));
+    const error_abs = Math.max(...residuals);
+    const maxY = Math.max(...y.map(val => Math.abs(val)));
+    const error_rel = maxY !== 0 ? error_abs / maxY : Number.MAX_VALUE;
+
+    return { coefficients, polynomial, error_abs, error_rel };
 }

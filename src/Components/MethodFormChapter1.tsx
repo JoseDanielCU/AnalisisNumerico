@@ -21,19 +21,18 @@ interface Iteration {
     xn?: number; // Used by Fixed Point
     fx?: number; // Function value for Fixed Point
     status?: string; // Status message for Fixed Point
+    error_abs?: number; // For absolute error
+    error_rel?: number; // For relative error
     [key: string]: any; // Allow additional method-specific fields
 }
 
+
 const MethodFormChapter1 = ({ method }: { method: string }) => {
     const [func, setFunc] = useState("x^3 - x - 2");
-    const [gx, setGx] = useState("");
-    const [useAutoGx, setUseAutoGx] = useState(false); // Toggle for automatic g(x)
-    const [k, setK] = useState(0.1); // Scaling factor for g(x) = x - k * f(x)
     const [x0, setX0] = useState(1);
     const [x1, setX1] = useState(2);
     const [tol, setTol] = useState(5e-4);
     const [maxIter, setMaxIter] = useState(100);
-    const [A, setA] = useState(0);
     const [results, setResults] = useState<Iteration[]>([]);
     const [showHelp, setShowHelp] = useState(false);
     const [firstDeriv, setFirstDeriv] = useState("");
@@ -43,11 +42,14 @@ const MethodFormChapter1 = ({ method }: { method: string }) => {
         { name: string; results: Iteration[]; error?: string }[]
     >([]);
     const [errorMessage, setErrorMessage] = useState("");
+    // Nuevo estado para elegir el tipo de error
+    const [errorType, setErrorType] = useState<"abs" | "rel">("abs");
+
 
     const methodDescriptions: Record<string, string> = {
         bisection: "El método de bisección consiste en dividir iterativamente un intervalo donde la función cambia de signo para aproximar la raíz.",
         falseRule: "El método de la regla falsa es similar al de bisección, pero usa interpolación lineal para obtener una mejor aproximación.",
-        fixedPoint: "El método del punto fijo transforma la ecuación en la forma x = g(x) y aproxima la raíz iterando g(x). Requiere que |g'(x)| < 1 para converger.",
+        fixedPoint: "El método del punto fijo transforma la ecuación f(x) = 0 en x = g(x) automáticamente y aproxima la raíz iterando g(x).",
         newton: "El método de Newton utiliza la función y su derivada para aproximar la raíz mediante tangentes.",
         secant: "El método de la secante es una variante del método de Newton que no requiere calcular la derivada explícitamente.",
         multipleRoots: "El método de raíces múltiples es una extensión del método de Newton que considera derivadas de orden superior para raíces múltiples.",
@@ -69,10 +71,6 @@ const MethodFormChapter1 = ({ method }: { method: string }) => {
             setErrorMessage("La función f(x) no puede estar vacía.");
             return false;
         }
-        if (method === "fixedPoint" && !useAutoGx && !gx) {
-            setErrorMessage("La función g(x) es requerida para el método de Punto Fijo si no usas g(x) automática.");
-            return false;
-        }
         if (isNaN(x0) || (["bisection", "falseRule", "secant"].includes(method) && isNaN(x1))) {
             setErrorMessage("Los valores de x0 y x1 deben ser numéricos.");
             return false;
@@ -85,10 +83,6 @@ const MethodFormChapter1 = ({ method }: { method: string }) => {
             setErrorMessage("El número máximo de iteraciones debe ser mayor que 0.");
             return false;
         }
-        if (method === "fixedPoint" && useAutoGx && (isNaN(k) || k <= 0)) {
-            setErrorMessage("El factor k debe ser un número positivo para g(x) automática.");
-            return false;
-        }
         return true;
     };
 
@@ -96,28 +90,77 @@ const MethodFormChapter1 = ({ method }: { method: string }) => {
         if (!validateInputs()) return;
 
         setErrorMessage("");
-        const options = { tol, maxIter, fx: func, A, k }; // Include fx, A, and k
+        const options = { tol, maxIter, fx: func }; // Only fx needed for fixedPoint
         let res: Iteration[] = [];
 
         try {
             switch (method) {
-                case "bisection":
-                    res = bisectionMethod(func, x0, x1, options);
+                 case "bisection":
+                     res = bisectionMethod(func, x0, x1, options).map((iteration) => {
+                        const e_abs = (iteration as any).error_abs;
+                        const e_rel = (iteration as any).error_rel;
+                        const { error_abs: _ea, error_rel: _er, ...filteredIteration } = iteration; // quitamos error_abs y error_rel
+
+                         return {
+                            ...filteredIteration,
+                            error: errorType === "abs" ? e_abs : e_rel,
+                        };
+                        }); 
                     break;
                 case "falseRule":
-                    res = falseRuleMethod(func, x0, x1, options);
+                    res = falseRuleMethod(func, x0, x1, options).map((iteration) => {
+                        const e_abs = (iteration as any).error_abs;
+                        const e_rel = (iteration as any).error_rel;
+                        const { error_abs: _ea, error_rel: _er, ...filteredIteration } = iteration;
+                         return {
+                            ...filteredIteration,
+                            error: errorType === "abs" ? e_abs : e_rel,
+                        };
+                        }); 
                     break;
                 case "fixedPoint":
-                    res = fixedPointMethod(useAutoGx ? "" : gx, x0, options);
+                    res = fixedPointMethod(x0, options).map((iteration) => {
+                        const e_abs = (iteration as any).error_abs;
+                        const e_rel = (iteration as any).error_rel;
+                        const { error_abs: _ea, error_rel: _er, ...filteredIteration } = iteration;
+                         return {
+                           ...filteredIteration,
+                            error: errorType === "abs" ? e_abs : e_rel,
+                        };
+                        }); 
                     break;
                 case "newton":
-                    res = newtonMethod(func, x0, options);
+                    res = newtonMethod(func, x0, options).map((iteration) => {
+                        const e_abs = (iteration as any).error_abs;
+                        const e_rel = (iteration as any).error_rel;
+                        const { error_abs: _ea, error_rel: _er, ...filteredIteration } = iteration;
+                         return {
+                            ...filteredIteration,
+                            error: errorType === "abs" ? e_abs : e_rel,
+                        };
+                        }); 
                     break;
                 case "secant":
-                    res = secantMethod(func, x0, x1, options);
+                    res = secantMethod(func, x0, x1, options).map((iteration) => {
+                        const e_abs = (iteration as any).error_abs;
+                        const e_rel = (iteration as any).error_rel;
+                        const { error_abs: _ea, error_rel: _er, ...filteredIteration } = iteration;
+                         return {
+                            ...filteredIteration,
+                            error: errorType === "abs" ? e_abs : e_rel,
+                        };
+                        }); 
                     break;
                 case "multipleRoots":
-                    res = multipleRootsMethod(func, x0, options);
+                    res = multipleRootsMethod(func, x0, options).map((iteration) => {
+                        const e_abs = (iteration as any).error_abs;
+                        const e_rel = (iteration as any).error_rel;
+                        const { error_abs: _ea, error_rel: _er, ...filteredIteration } = iteration;
+                         return {
+                            ...filteredIteration,
+                            error: errorType === "abs" ? e_abs : e_rel,
+                        };
+                        }); 
                     break;
             }
 
@@ -125,17 +168,12 @@ const MethodFormChapter1 = ({ method }: { method: string }) => {
 
             if (generateReport) {
                 const methodsToRun = [
-                    { name: "Bisección", fn: () => bisectionMethod(func, x0, x1, options) },
-                    { name: "Regla Falsa", fn: () => falseRuleMethod(func, x0, x1, options) },
-                    {
-                        name: "Punto Fijo",
-                        fn: () => {
-                            return fixedPointMethod(useAutoGx ? "" : gx, x0, options);
-                        },
-                    },
-                    { name: "Newton", fn: () => newtonMethod(func, x0, options) },
-                    { name: "Secante", fn: () => secantMethod(func, x0, x1, options) },
-                    { name: "Raíces Múltiples", fn: () => multipleRootsMethod(func, x0, options) },
+                    { name: "Bisección", fn: () => bisectionMethod(func, x0, x1, options).map((iter) => ({ ...iter, error: errorType === "abs" ? iter.error_abs : iter.error_rel })) },
+                    { name: "Regla Falsa", fn: () => falseRuleMethod(func, x0, x1, options).map((iter) => ({ ...iter, error: errorType === "abs" ? iter.error_abs : iter.error_rel })) },
+                    { name: "Punto Fijo", fn: () => fixedPointMethod(x0, options).map((iter) => ({ ...iter, error: errorType === "abs" ? iter.error_abs : iter.error_rel })) },
+                    { name: "Newton-Raphson", fn: () => newtonMethod(func, x0, options).map((iter) => ({ ...iter, error: errorType === "abs" ? iter.error_abs : iter.error_rel })) },
+                    { name: "Secante", fn: () => secantMethod(func, x0, x1, options).map((iter) => ({ ...iter, error: errorType === "abs" ? iter.error_abs : iter.error_rel })) },
+                    { name: "Raíces Múltiples", fn: () => multipleRootsMethod(func, x0, options).map((iter) => ({ ...iter, error: errorType === "abs" ? iter.error_abs : iter.error_rel })) },
                 ];
 
                 const report = methodsToRun.map(({ name, fn }) => {
@@ -177,50 +215,6 @@ const MethodFormChapter1 = ({ method }: { method: string }) => {
                         placeholder="Ejemplo: x^3 - x - 2"
                         aria-label="Función f(x)"
                     />
-                    {method === "fixedPoint" && (
-                        <>
-                            <div className="flex items-center space-x-2 mt-2">
-                                <input
-                                    type="checkbox"
-                                    id="autoGxToggle"
-                                    checked={useAutoGx}
-                                    onChange={() => setUseAutoGx(!useAutoGx)}
-                                    className="w-4 h-4"
-                                    aria-label="Usar g(x) automática"
-                                />
-                                <label htmlFor="autoGxToggle" className="text-sm text-gray-700">
-                                    Usar g(x) = x - k * f(x) automáticamente
-                                </label>
-                            </div>
-                            {!useAutoGx && (
-                                <>
-                                    <label className="block font-medium mt-2">Función g(x):</label>
-                                    <input
-                                        type="text"
-                                        value={gx}
-                                        onChange={(e) => setGx(e.target.value)}
-                                        className="w-full border p-2 rounded"
-                                        placeholder="Ejemplo: sin(x - A*10^(-3))"
-                                        aria-label="Función g(x)"
-                                    />
-                                </>
-                            )}
-                            {useAutoGx && (
-                                <>
-                                    <label className="block font-medium mt-2">Factor k:</label>
-                                    <input
-                                        type="number"
-                                        value={k}
-                                        onChange={(e) => setK(parseFloat(e.target.value))}
-                                        className="w-full border p-2 rounded"
-                                        step="any"
-                                        placeholder="Ejemplo: 0.1"
-                                        aria-label="Factor k para g(x)"
-                                    />
-                                </>
-                            )}
-                        </>
-                    )}
                     <div className="mt-4">
                         <button
                             onClick={() => setShowHelp(!showHelp)}
@@ -237,11 +231,7 @@ const MethodFormChapter1 = ({ method }: { method: string }) => {
                                     <li><code>sin(x) + log(x)</code></li>
                                     <li><code>exp(-x^2)</code></li>
                                 </ul>
-                                Para Punto Fijo, ingresa g(x) tal que x = g(x), o usa g(x) automática:
-                                <ul className="list-disc list-inside mt-1">
-                                    <li>Manual: Si f(x) = x^3 - x - 2, g(x) = <code>(x^3 - 2)^(1/3)</code></li>
-                                    <li>Automática: Usa g(x) = x - k * f(x), ajusta k (ej: 0.1)</li>
-                                </ul>
+                                Para Punto Fijo, solo ingresa f(x); se usa g(x) = x - k * f(x) automáticamente.
                                 Puedes usar funciones de <strong>math.js</strong>: <code>abs</code>, <code>sqrt</code>, <code>cos</code>, etc.
                             </div>
                         )}
@@ -280,6 +270,18 @@ const MethodFormChapter1 = ({ method }: { method: string }) => {
                         />
                     </div>
                 )}
+                 {/* Selección del tipo de error */}
+            <div>
+                <label className="block font-medium">Tipo de error:</label>
+                <select
+                    value={errorType}
+                    onChange={(e) => setErrorType(e.target.value as "abs" | "rel")}
+                    className="w-full border p-2 rounded"
+                >
+                    <option value="abs">Error Absoluto</option>
+                    <option value="rel">Error Relativo</option>
+                </select>
+            </div>
                 <div>
                     <label className="block font-medium">Tolerancia:</label>
                     <input

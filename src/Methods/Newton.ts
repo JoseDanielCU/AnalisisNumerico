@@ -7,6 +7,8 @@ interface Iteration {
     fx: number;
     dfx: number;
     error: number;
+    error_abs: number;
+    error_rel: number;
 }
 
 export function newtonMethod(
@@ -25,10 +27,11 @@ export function newtonMethod(
     const df = (x: number) => evaluate(dfxExpr, { x });
 
     let iter = 0;
-    let error = Number.MAX_VALUE;
+    let error_abs = Number.MAX_VALUE;
+    let error_rel = Number.MAX_VALUE;
     let x = x0;
 
-    while (iter < options.maxIter && error > options.tol) {
+    while (iter < options.maxIter && error_abs > options.tol) {
         const fxVal = f(x);
         const dfxVal = df(x);
 
@@ -37,9 +40,18 @@ export function newtonMethod(
         }
 
         const xNew = x - fxVal / dfxVal;
-        error = Math.abs(xNew - x);
+        error_abs = Math.abs(xNew - x);
+        error_rel = xNew !== 0 ? error_abs / Math.abs(xNew) : Number.MAX_VALUE;
 
-        results.push({ iter: iter + 1, x, fx: fxVal, dfx: dfxVal, error });
+        results.push({
+            iter: iter + 1,
+            x,
+            fx: fxVal,
+            dfx: dfxVal,
+            error: error_abs,
+            error_abs,
+            error_rel,
+        });
 
         x = xNew;
         iter++;

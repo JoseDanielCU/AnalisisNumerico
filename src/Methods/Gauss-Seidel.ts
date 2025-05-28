@@ -3,7 +3,9 @@
 export interface IterationGS {
     iter: number;
     x: number[];
-    error: number;
+    error: number;      // Se usará el error absoluto para la comparación
+    error_abs: number;  // Error absoluto
+    error_rel: number;  // Error relativo
 }
 
 export function gaussSeidelMethod(
@@ -59,8 +61,20 @@ export function gaussSeidelMethod(
             x[i] = (b[i] - sum1 - sum2) / A[i][i];
         }
 
-        error = Math.max(...x.map((xi, i) => Math.abs(xi - xOld[i])));
-        iterations.push({ iter: iter + 1, x: [...x], error });
+        // Cálculo del error absoluto: máxima diferencia entre x y xOld
+        const error_abs = Math.max(...x.map((xi, i) => Math.abs(xi - xOld[i])));
+        // Cálculo del error relativo: error_abs dividido por el máximo valor absoluto de la nueva x (evitando división por cero)
+        const maxVal = Math.max(...x.map((xi) => Math.abs(xi)));
+        const error_rel = maxVal !== 0 ? error_abs / maxVal : Number.MAX_VALUE;
+        error = error_abs;
+
+        iterations.push({
+            iter: iter + 1,
+            x: [...x],
+            error: error_abs,
+            error_abs,
+            error_rel,
+        });
 
         iter++;
     }

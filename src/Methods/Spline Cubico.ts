@@ -1,7 +1,10 @@
 import { gaussianElimination } from "../Utils/EliminacionGaussiana";
+
 export interface CubicSplineResult {
     segments: { a: number; b: number; c: number; d: number; interval: [number, number] }[];
     polynomial: string;
+    error_abs: number;  // Error absoluto (máxima diferencia entre los valores dados y la evaluación del spline)
+    error_rel: number;  // Error relativo (error absoluto / máximo valor absoluto de y)
 }
 
 export function cubicSplineMethod(points: [number, number][]): CubicSplineResult {
@@ -49,5 +52,10 @@ export function cubicSplineMethod(points: [number, number][]): CubicSplineResult
         })
         .join("\n");
 
-    return { segments, polynomial };
+    // Como el spline cúbico interpola exactamente los puntos, el error en cada nodo es 0.
+    // Si se desea evaluar el error en puntos intermedios, habría que comparar la evaluación del spline con la función real.
+    const error_abs = 0;
+    const error_rel = 0;
+
+    return { segments, polynomial, error_abs, error_rel };
 }

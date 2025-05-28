@@ -1,9 +1,9 @@
-// src/Methods/Jacobi.ts
-
 export interface IterationJacobi {
     iter: number;
     x: number[];
-    error: number;
+    error: number;      // Error absoluto
+    error_abs: number;  // Error absoluto (igual que error)
+    error_rel: number;  // Error relativo
 }
 
 export function jacobiMethod(
@@ -17,7 +17,6 @@ export function jacobiMethod(
     const iterations: IterationJacobi[] = [];
 
     // Matriz de iteración: T = D^(-1)*(L + U)
-    // Primero calcular D^-1 * (L+U)
     const T = Array(n)
         .fill(0)
         .map(() => new Array(n).fill(0));
@@ -29,7 +28,7 @@ export function jacobiMethod(
         }
     }
 
-    // Radio espectral aproximado con la norma espectral o con power method (simplificamos con max fila suma)
+    // Radio espectral aproximado con la suma máxima de filas
     const spectralRadius = Math.max(
         ...T.map((row) => row.reduce((acc, val) => acc + Math.abs(val), 0))
     );
@@ -47,8 +46,21 @@ export function jacobiMethod(
             xNew[i] = (b[i] - sum) / A[i][i];
         }
 
-        error = Math.max(...xNew.map((xi, i) => Math.abs(xi - x[i])));
-        iterations.push({ iter: iter + 1, x: [...xNew], error });
+        // Error absoluto: la máxima diferencia entre la nueva y la anterior aproximación
+        const error_abs = Math.max(...xNew.map((xi, i) => Math.abs(xi - x[i])));
+        // Error relativo: error absoluto dividido por el máximo valor absoluto de xNew (evitando división por cero)
+        const maxVal = Math.max(...xNew.map((xi) => Math.abs(xi)));
+        const error_rel = maxVal !== 0 ? error_abs / maxVal : Number.MAX_VALUE;
+
+        error = error_abs;
+
+        iterations.push({
+            iter: iter + 1,
+            x: [...xNew],
+            error: error_abs,
+            error_abs,
+            error_rel,
+        });
 
         x = [...xNew];
         iter++;

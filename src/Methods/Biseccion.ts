@@ -1,4 +1,3 @@
-// src/methods/bisection.ts
 import { evaluate } from "mathjs";
 
 interface Iteration {
@@ -7,7 +6,8 @@ interface Iteration {
     b: number;
     mid: number;
     f_mid: number;
-    error: number;
+    error_abs: number;
+    error_rel: number;
 }
 
 export function bisectionMethod(
@@ -26,15 +26,16 @@ export function bisectionMethod(
     }
 
     let iter = 0;
-    let error = Number.MAX_VALUE;
+    let errorAbs = Number.MAX_VALUE;
     let mid = a;
     let prevMid = a;
 
-    while (iter < options.maxIter && error > options.tol) {
+    while (iter < options.maxIter && errorAbs > options.tol) {
         mid = (a + b) / 2;
         const fmid = f(mid);
 
-        error = iter === 0 ? Math.abs(fmid) : Math.abs(mid - prevMid);
+        errorAbs = iter === 0 ? Math.abs(fmid) : Math.abs(mid - prevMid);
+        const errorRel = mid !== 0 ? errorAbs / Math.abs(mid) : Number.MAX_VALUE;
 
         results.push({
             iter: iter + 1,
@@ -42,7 +43,8 @@ export function bisectionMethod(
             b,
             mid,
             f_mid: fmid,
-            error,
+            error_abs: errorAbs,
+            error_rel: errorRel,
         });
 
         if (fmid === 0) break;
